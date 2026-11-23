@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Alertas & Invasões — MU Battle Easy</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --panel: #131824;
+      --panel-2: #1a2132;
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --accent-2: #38bdf8;
+      --ok: #22c55e;
+      --danger: #ef4444;
+      --border: #263046;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container { max-width: 1120px; margin: 0 auto; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+    }
+    h1 { font-size: 1.35rem; color: var(--accent); }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    .clock-box { text-align: right; }
+    .clock { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+    }
+    button, select, input {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #111; font-weight: 700; border: none; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card.active { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      background: var(--panel-2);
+      color: var(--accent-2);
+    }
+    .badge.active { background: rgba(34, 197, 94, 0.18); color: var(--ok); }
+    .times { font-size: 0.85rem; color: var(--muted); word-break: break-word; }
+    .countdown { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .kundum-box {
+      background: linear-gradient(135deg, #1d1629, #131824);
+      border: 1px solid #5b21b6;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 22px;
+    }
+    .kundum-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 0.9rem;
+    }
+    th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { background: var(--panel-2); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Alertas de Invasões &amp; Boss — MU Battle Easy</h1>
+        <p class="sub">Monitorização em tempo real, alertas sonoros e rastreador de respawn de 12h</p>
+      </div>
+      <div class="clock-box">
+        <div id="clock" class="clock">--:--:--</div>
+        <div id="next-summary" class="sub">A calcular próxima invasão...</div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <button id="btn-sound" class="primary">Ativar Som &amp; Notificações</button>
+      <button id="btn-test">Testar Alerta</button>
+      <label class="sub">
+        Aviso prévio:
+        <select id="lead-minutes">
+          <option value="0">Na hora exata</option>
+          <option value="1" selected>1 minuto antes</option>
+          <option value="2">2 minutos antes</option>
+          <option value="5">5 minutos antes</option>
+        </select>
+      </label>
+      <label class="sub">
+        Filtrar tabela:
+        <select id="filter-event">
+          <option value="ALL">Todas as invasões</option>
+        </select>
+      </label>
+    </div>
+
+    <section class="kundum-box">
+      <h2>Boss: O Kundum (Kalima 7) — Respawn 12h</h2>
+      <p class="sub">Nasce a cada 12h a partir do momento em que foi derrotado. Drop: até 18 joias customs (Top 3 Damage) + 10 WCoinP (Top 1).</p>
+      <div class="kundum-row">
+        <button id="kundum-now" class="primary">Morreu Agora! (+12h)</button>
+        <input type="datetime-local" id="kundum-custom" />
+        <button id="kundum-set">Definir Horário da Morte</button>
+        <span id="kundum-status" class="countdown">Sem registo ainda</span>
+      </div>
+    </section>
+
+    <section id="cards" class="grid"></section>
+
+    <section>
+      <h2 style="margin-bottom: 10px;">Grade Horária Diária (00:00 — 23:20)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Horário</th>
+            <th>Invasão / Boss</th>
+            <th>Duração</th>
+            <th>Mapas</th>
+          </tr>
+        </thead>
+        <tbody id="schedule-body"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const EVENTS = [
+      {
+        id: 'skeleton-king',
+        name: 'Invasão: Skeleton King',
+        durationMin: 20,
+        monsters: '10 Skeleton Kings',
+        maps: 'Lorencia ou Noria (aleatório)',
+        times: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+        enabled: true
+      },
+      {
+        id: 'dourados',
+        name: 'Invasão: Dourados (Golden)',
+        durationMin: 20,
+        monsters: '30 Dourados',
+        maps: 'Lorencia, Devias, Noria, Atlans e Tarkan (todos ao mesmo tempo)',
+        times: ['00:40', '03:40', '06:40', '09:40', '12:40', '15:40', '18:40', '21:40'],
+        enabled: true
+      },
+      {
+        id: 'red-dragon',
+        name: 'Invasão: Red Dragon',
+        durationMin: 20,
+        monsters: '10 Red Dragons',
+        maps: 'Lorencia, Devias ou Noria (aleatório)',
+        times: ['00:20', '03:20', '06:20', '09:20', '12:20', '15:20', '18:20', '21:20'],
+        enabled: true
+      },
+      {
+        id: 'white-wizard',
+        name: 'Invasão: White Wizard',
+        durationMin: 20,
+        monsters: '10 White Wizards',
+        maps: 'Lorencia, Devias ou Noria (aleatório)',
+        times: ['01:00', '04:00', '07:00', '10:00', '13:00', '16:00', '19:00', '22:00'],
+        enabled: true
+      },
+      {
+        id: 'new-year',
+        name: 'Invasão: New Year (Ano Novo)',
+        durationMin: 20,
+        monsters: '10 Fourtune Puchs',
+        maps: 'Lost Tower, Atlans, Aida, Kanturu ou Rakilion (aleatório)',
+        times: ['01:20', '04:20', '07:20', '10:20', '13:20', '16:20', '19:20', '22:20'],
+        enabled: true
+      },
+      {
+        id: 'rabbits',
+        name: 'Invasão: Rabbits (Coelhos)',
+        durationMin: 20,
+        monsters: '10 Rabbits',
+        maps: 'Lost Tower, Atlans, Aida, Kanturu ou Rakilion (aleatório)',
+        times: ['01:40', '04:40', '07:40', '10:40', '13:40', '16:40', '19:40', '22:40'],
+        enabled: true
+      },
+      {
+        id: 'summer',
+        name: 'Invasão: Summer (Verão)',
+        durationMin: 20,
+        monsters: '10 Fire Flame Ghosts',
+        maps: 'Lost Tower, Atlans, Aida, Kanturu ou Rakilion (aleatório)',
+        times: ['02:00', '05:00', '08:00', '11:00', '14:00', '17:00', '20:00', '23:00'],
+        enabled: true
+      },
+      {
+        id: 'christmas',
+        name: 'Invasão: Christmas (Natal)',
+        durationMin: 20,
+        monsters: '10 Goblins',
+        maps: 'Lorencia, Devias ou Noria (aleatório)',
+        times: ['02:20', '05:20', '08:20', '11:20', '14:20', '17:20', '20:20', '23:20'],
+        enabled: true
+      }
+    ];
+
+    const state = JSON.parse(localStorage.getItem('mu_battle_easy_state') || '{}');
+    EVENTS.forEach(ev => {
+      if (typeof state[ev.id] === 'boolean') ev.enabled = state[ev.id];
+    });
+
+    let soundEnabled = false;
+    const firedAlerts = new Set();
+
+    function playBeep() {
+      if (!soundEnabled) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+
+    function notifyUser(title, body) {
+      playBeep();
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+    }
+
+    document.getElementById('btn-sound').addEventListener('click', async () => {
+      soundEnabled = true;
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      playBeep();
+      alert('Alertas sonoros e notificações ativados!');
+    });
+
+    document.getElementById('btn-test').addEventListener('click', () => {
+      const prev = soundEnabled;
+      soundEnabled = true;
+      notifyUser('Teste de Alerta — MU Battle Easy', 'O som e as notificações estão a funcionar.');
+      soundEnabled = prev;
+    });
+
+    function parseTimeToday(hhmm, now) {
+      const [h, m] = hhmm.split(':').map(Number);
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    }
+
+    function getEventStatus(ev, now) {
+      let activeUntil = null;
+      let nextStart = null;
+
+      for (const t of ev.times) {
+        const start = parseTimeToday(t, now);
+        const end = new Date(start.getTime() + ev.durationMin * 60000);
+        if (now >= start && now <= end) {
+          activeUntil = end;
+        }
+        if (start > now && (!nextStart || start < nextStart)) {
+          nextStart = start;
+        }
+      }
+
+      if (!nextStart) {
+        const firstTomorrow = parseTimeToday(ev.times[0], now);
+        firstTomorrow.setDate(firstTomorrow.getDate() + 1);
+        nextStart = firstTomorrow;
+      }
+
+      return { activeUntil, nextStart };
+    }
+
+    function formatDuration(ms) {
+      const totalSec = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateKundum(now) {
+      const deathIso = localStorage.getItem('kundum_death_iso');
+      const statusEl = document.getElementById('kundum-status');
+      if (!deathIso) {
+        statusEl.textContent = 'Sem registo ainda — clique em "Morreu Agora! (+12h)"';
+        return;
+      }
+      const deathDate = new Date(deathIso);
+      const respawnDate = new Date(deathDate.getTime() + 12 * 3600 * 1000);
+      const diff = respawnDate.getTime() - now.getTime();
+      if (diff <= 0) {
+        statusEl.textContent = 'KUNDUM PRONTO / RESPAWN ATIVO (Kalima 7)';
+      } else {
+        statusEl.textContent = `Próximo respawn em ${formatDuration(diff)} (${respawnDate.toLocaleTimeString('pt-PT')})`;
+      }
+    }
+
+    document.getElementById('kundum-now').addEventListener('click', () => {
+      localStorage.setItem('kundum_death_iso', new Date().toISOString());
+      updateKundum(new Date());
+    });
+
+    document.getElementById('kundum-set').addEventListener('click', () => {
+      const val = document.getElementById('kundum-custom').value;
+      if (!val) return;
+      localStorage.setItem('kundum_death_iso', new Date(val).toISOString());
+      updateKundum(new Date());
+    });
+
+    function buildFilterAndTable() {
+      const select = document.getElementById('filter-event');
+      EVENTS.forEach(ev => {
+        const opt = document.createElement('option');
+        opt.value = ev.id;
+        opt.textContent = ev.name;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', renderScheduleTable);
+      renderScheduleTable();
+    }
+
+    function renderScheduleTable() {
+      const filterId = document.getElementById('filter-event').value;
+      const rows = [];
+      EVENTS.forEach(ev => {
+        if (filterId !== 'ALL' && ev.id !== filterId) return;
+        ev.times.forEach(t => {
+          rows.push({ time: t, name: ev.name, duration: `${ev.durationMin} min`, maps: ev.maps });
+        });
+      });
+      rows.sort((a, b) => a.time.localeCompare(b.time));
+      document.getElementById('schedule-body').innerHTML = rows.map(r => `
+        <tr>
+          <td><strong>${r.time}</strong></td>
+          <td>${r.name}</td>
+          <td>${r.duration}</td>
+          <td>${r.maps}</td>
+        </tr>
+      `).join('');
+    }
+
+    function tick() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('pt-PT');
+      const leadMin = Number(document.getElementById('lead-minutes').value);
+
+      let nearestEvent = null;
+      let nearestDiff = Infinity;
+
+      const cardsHtml = EVENTS.map(ev => {
+        const { activeUntil, nextStart } = getEventStatus(ev, now);
+        const diffMs = nextStart.getTime() - now.getTime();
+
+        if (ev.enabled && diffMs < nearestDiff) {
+          nearestDiff = diffMs;
+          nearestEvent = { ev, nextStart, diffMs };
+        }
+
+        if (ev.enabled) {
+          const alertTimeMs = nextStart.getTime() - leadMin * 60000;
+          const key = `${ev.id}_${nextStart.toISOString()}_${leadMin}`;
+          if (now.getTime() >= alertTimeMs && now.getTime() <= nextStart.getTime() + 5000 && !firedAlerts.has(key)) {
+            firedAlerts.add(key);
+            notifyUser(ev.name, `Horário: ${nextStart.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} — ${ev.maps}`);
+          }
+        }
+
+        return `
+          <article class="card ${activeUntil ? 'active' : ''}">
+            <div class="card-top">
+              <strong>${ev.name}</strong>
+              <span class="badge ${activeUntil ? 'active' : ''}">${activeUntil ? 'ATIVA AGORA' : 'AGUARDAR'}</span>
+            </div>
+            <div class="countdown">${activeUntil ? `Termina em ${formatDuration(activeUntil.getTime() - now.getTime())}` : `Próxima em ${formatDuration(diffMs)}`}</div>
+            <div class="sub">Monstros: ${ev.monsters}</div>
+            <div class="sub">Mapas: ${ev.maps}</div>
+            <div class="times">Horários: ${ev.times.join(' • ')}</div>
+            <label class="sub">
+              <input type="checkbox" ${ev.enabled ? 'checked' : ''} onchange="toggleEvent('${ev.id}', this.checked)" />
+              Alerta ativo
+            </label>
+          </article>
+        `;
+      }).join('');
+
+      document.getElementById('cards').innerHTML = cardsHtml;
+      if (nearestEvent) {
+        document.getElementById('next-summary').textContent =
+          `Próxima: ${nearestEvent.ev.name} em ${formatDuration(nearestEvent.diffMs)}`;
+      }
+      updateKundum(now);
+    }
+
+    window.toggleEvent = function(id, checked) {
+      state[id] = checked;
+      localStorage.setItem('mu_battle_easy_state', JSON.stringify(state));
+      const target = EVENTS.find(e => e.id === id);
+      if (target) target.enabled = checked;
+    };
+
+    buildFilterAndTable();
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
